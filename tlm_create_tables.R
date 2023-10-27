@@ -93,7 +93,7 @@ t3cleanHa <- t3clean %>%
 
 #Fix names and add units
 names(t3cleanHa) <- c("EPA Level I Ecoregion",
-                    "Modis MCD12Q1 Landcover",
+                    "Modis MCD12Q1 Land cover",
                     "Number of Fire Events",
                     "Total Area Burned (ha)",
                     "Area Burned During Day of Maximum Growth across all Events (ha)",
@@ -177,13 +177,13 @@ names(t5cleanSig) <- c(
   "EPA Level I Ecoregion Code",
   "EPA Level III Ecoregion",
   "EPA Level III Ecoregion Code",
-  "Single Day Maximum Fire Growth Rate Thiel-Sen Coefficient (ha/day/year)",
+  "Single Day Maximum Fire Growth Rate Theil-Sen Coefficient (ha/day/year)",
   "Single Day Maximum Fire Growth Rate P-value",
   "Single Day Maximum Fire Growth Rate P-value Significance",
-  "Fire Duration Thiel-Sen Coefficient (day/year)",
+  "Fire Duration Theil-Sen Coefficient (day/year)",
   "Fire Duration P-value",
   "Fire Duration P-value Significance",
-  "Simple Fire Spread Rate Thiel-Sen Coefficient (ha/day/year)",
+  "Simple Fire Spread Rate Theil-Sen Coefficient (ha/day/year)",
   "Simple Fire Spread Rate P-value",
   "Simple Fire Spread Rate P-value Significance"
 )
