@@ -1,0 +1,142 @@
+Get updated MTBS stats for fast fire paper
+Tyler L. McIntosh
+CU Boulder CIRES Earth Lab
+Last updated: 10/17/23
+
+This script uses the following naming conventions wherever possible:
+ lowerCamelCase for variables
+ period.separated for functions
+ underscore_separated for files
+
+```{r, echo = FALSE, warning = FALSE}
+# SETUP ----
+## Libraries ----
+
+#Check the required libraries and download if needed
+list.of.packages <- c("tidyverse", 
+                      "terra",
+                      "sf",
+                      "mapview",
+                      "here",
+                      "landscapemetrics",
+                      "tictoc", 
+                      "mblm", #Median-based linear models (i.e. thiel-sen)
+                      "units",
+                      "tigris", #US data
+                      "scales") #add commas to axis
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+lapply(list.of.packages, library, character.only = TRUE) #apply library function to all packages
+
+
+## Clean workspace & set up environment ----
+rm(list=ls()) #Ensure empty workspace if running from beginning
+here() #Check here location
+#OR
+#setwd() #Set working directory directly
+options(digits = 6) #Set standard decimal print output
+options(scipen = 999) #Turn scientific notation on and off (0 = on, 999 = off)
+```
+
+
+
+```{r}
+
+#Read in MTBS data, ensure valid, add burn year
+mtbsPerims <- sf::st_read(here::here('data', 'mtbs_perimeter_data_1984_2021', 'mtbs_perims_DD.shp')) %>% 
+  st_transform(st_crs(4269)) #Data from https://www.mtbs.gov/
+
+head(mtbsPerims)
+
+#Get burn year for each polygon and the burn area in hectares instead of acres
+mtbsPerims <- mtbsPerims %>%
+  dplyr::mutate(Burn_Yr = year(as.Date(Ig_Date))) %>%
+  dplyr::mutate(BurnHa = BurnBndAc * 0.404686) %>%
+  sf::st_make_valid()
+
+sf::st_is_valid(mtbsPerims) %>% unique()
+
+
+
+#Get shapefiles for the US
+# Fetch all US states
+usa <- tigris::states() %>% 
+  st_transform(st_crs(4269))
+
+# Filter for contiguous states (excluding Alaska and Hawaii)
+conus <- usa[usa$STUSPS %in% c("WA", "ID", "MT", "ND", "MN", "MI", "ME", "WI", "VT", "NH", "NY", "SD", "WY", "OR", "IA", "NE", "IL", "NV", "UT", "CO", "KS", "OK", "NM", "AZ", "AR", "MO", "MS", "AL", "GA", "SC", "NC", "TN", "KY", "IN", "OH", "WV", "VA", "PA", "MD", "DE", "NJ", "CT", "RI", "MA", "CT", "CA", "TX", "FL", "LA"),]
+
+west <- usa[usa$STUSPS %in% c("WA", "OR", "CA", "ID", "MT", "WY", "NV", "AZ", "CO", "NM", "UT"),]
+
+
+#Filter perimeters to just include the area we want
+
+mtbsPerimsWest <- sf::st_filter(mtbsPerims, west)
+mtbsPerimsConus <- sf::st_filter(mtbsPerims, conus)
+
+#summarize burned area by hectares
+get.wildfire.burn.ha.summary <- function(perims) {
+  burnedAc <- perims %>%
+    filter(Incid_Type == "Wildfire") %>%
+    select(Burn_Yr, BurnHa) %>%
+    as.data.frame() %>%
+    group_by(Burn_Yr) %>%
+    summarise(totBurnHa = sum(BurnHa))
+  return(burnedAc)
+}
+
+westBurned <- get.wildfire.burn.ha.summary(mtbsPerimsWest)
+conusBurned <- get.wildfire.burn.ha.summary(mtbsPerimsConus)
+
+#Get theil-sen fits and graph
+theilSenFitWest <- mblm::mblm(totBurnHa ~ Burn_Yr, westBurned, repeated = FALSE)
+
+ggplot(westBurned, aes(x = Burn_Yr, y = totBurnHa)) +
+  geom_col(fill = "maroon") +
+#  labs(title = "Western U.S. Burned Area 1984-2021") +
+  xlab("Year") +
+  ylab("Total area burned by wildfire (ha)") +
+  scale_y_continuous(labels=comma) +
+  geom_abline(intercept = theilSenFitWest$coefficients["(Intercept)"],
+              slope = theilSenFitWest$coefficients["Burn_Yr"],
+              linetype = "dashed",
+              linewidth = 0.8) +
+  theme_light()
+ggsave(here::here('outputs', 'west_ac_burned.png'))
+
+#Get estimator significance
+summary.mblm(theilSenFitWest)
+
+
+theilSenFitConus <- mblm::mblm(totBurnHa ~ Burn_Yr, conusBurned, repeated = FALSE)
+
+# ggplot(conusBurned, aes(x = Burn_Yr, y = totBurnHa)) +
+#   geom_col(fill = "maroon") +
+# #  labs(title = "CONUS Burned Area 1984-2021") +
+#   xlab("Year") +
+#   ylab("Total area burned by wildfire (ha)") +
+#   geom_abline(intercept = theilSenFitWest$coefficients["(Intercept)"],
+#               slope = theilSenFitWest$coefficients["Burn_Yr"],
+#               linetype = "dashed")
+
+#Calculate % increase
+
+#Function to get value in a certain year
+get.thiel.sen.point <- function(data, yr) {
+  return(as.integer(data$coefficients["(Intercept)"] + (yr * data$coefficients["Burn_Yr"])))
+}
+
+ts1984 <- get.thiel.sen.point(theilSenFitWest, 1984)
+ts2021 <- get.thiel.sen.point(theilSenFitWest, 2021)
+increaseTo2021 <- (ts2021 / ts1984) * 100
+increaseBy2021 <- ((ts2021 - ts1984) / ts1984) * 100
+
+
+
+write_csv(conusBurned, here::here('data', 'conus_burned.csv'))
+write_csv(westBurned, here::here('data', 'west_burned.csv'))
+
+```
+
+
