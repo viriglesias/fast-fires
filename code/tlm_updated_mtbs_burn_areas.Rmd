@@ -23,7 +23,7 @@ list.of.packages <- c("tidyverse",
                       "mblm", #Median-based linear models (i.e. thiel-sen)
                       "units",
                       "tigris", #US data
-                      "scales") #add commas to axis
+                      "scales") #add commas to ggplot axis
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
