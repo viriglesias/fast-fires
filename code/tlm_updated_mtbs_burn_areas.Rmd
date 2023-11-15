@@ -32,7 +32,9 @@ lapply(list.of.packages, library, character.only = TRUE) #apply library function
 
 ## Clean workspace & set up environment ----
 rm(list=ls()) #Ensure empty workspace if running from beginning
-here() #Check here location
+here::i_am("code/tlm_updated_mtbs_burn_areas.Rmd")
+here::here() #Check here location
+
 #OR
 #setwd() #Set working directory directly
 options(digits = 6) #Set standard decimal print output
