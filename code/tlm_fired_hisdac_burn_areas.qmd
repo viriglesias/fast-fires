@@ -1,0 +1,412 @@
+Get annual FIRED stats for fast fire paper + w/in 1-4km of hisdac
+Tyler L. McIntosh
+CU Boulder CIRES Earth Lab
+Last updated: 4/18/24
+
+This script uses the following naming conventions wherever possible:
+ lowerCamelCase for variables
+ period.separated for functions
+ underscore_separated for files
+
+```{r, echo = FALSE, warning = FALSE}
+# SETUP ----
+## Libraries ----
+
+#Check the required libraries and download if needed
+list.of.packages <- c("tidyverse", 
+                      "terra",
+                      "sf",
+                      "mapview",
+                      "here",
+                      "landscapemetrics",
+                      "tictoc", 
+                      "mblm", #Median-based linear models (i.e. thiel-sen)
+                      "units",
+                      "glue",
+                      "tictoc",
+                      "patchwork",
+                      "tigris", #US data
+                      "scales") #add commas to ggplot axis
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+lapply(list.of.packages, library, character.only = TRUE) #apply library function to all packages
+
+
+## Clean workspace & set up environment ----
+rm(list=ls()) #Ensure empty workspace if running from beginning
+here::i_am("code/tlm_fired_hisdac_burn_areas.qmd")
+here::here() #Check here location
+
+
+options(digits = 6) #Set standard decimal print output
+options(scipen = 999) #Turn scientific notation on and off (0 = on, 999 = off)
+```
+
+```{r}
+# Read in FIRED data
+fired <- sf::st_read(here::here('data', 'fired_events_conus_to2021091.gpkg')) |>
+  sf::st_transform(sf::st_crs(4269))
+
+# Access HISDAC
+# from https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/JHY9BT
+hisdac <- terra::rast(list.files(here::here('data/BUA/BUA'), full.names = TRUE))
+
+
+```
+
+
+# Get overall numbers
+
+```{r}
+#Get shapefiles for the US
+# Fetch all US states
+usa <- tigris::states() %>% 
+  sf::st_transform(sf::st_crs(4269))
+
+# Filter for west
+west <- usa[usa$STUSPS %in% c("WA", "OR", "CA", "ID", "MT", "WY", "NV", "AZ", "CO", "NM", "UT"),]
+
+
+#Filter perimeters to just include the area we want
+firedPerimsWest <- sf::st_filter(fired, west)
+firedPerimsWestNoCrop <- firedPerimsWest |>
+  dplyr::filter(lc_name != "Croplands")
+
+
+#summarize burned area by hectares
+get.wildfire.burn.ha.summary <- function(perims) {
+  burnedAc <- perims |>
+    dplyr::mutate(tot_ar_ha2 = tot_ar_km2 * 100) |>
+    select(ig_year, tot_ar_ha2) |>
+    as.data.frame() |>
+    group_by(ig_year) |>
+    summarise(totBurnHa = sum(tot_ar_ha2))
+  return(burnedAc)
+}
+
+westBurned <- get.wildfire.burn.ha.summary(firedPerimsWest)
+westBurnedNoCrop <- get.wildfire.burn.ha.summary(firedPerimsWestNoCrop)
+
+unique(westBurned$ig_year)
+
+rm(fired, firedPerimsWest)
+
+
+```
+
+# Get hisdac numbers
+
+```{r}
+
+
+#Function to clip a raster to a vector, ensuring in same projection
+#Returns raster in original projection, but clipped to vector
+#Returns raster in the same form that it came in
+# PARAMETERS
+# raster : a SpatRaster, PackedSpatRaster, RasterLayer, RasterStack, or RasterBrick object
+# vector : a SpatVector, PackedSpatVector or SF object
+# mask : TRUE or FALSE; whether terra::clip should mask the raster as well
+crop.careful.universal <- function(raster, vector, mask, verbose = FALSE) {
+  pack <- FALSE
+  
+  #Unpack if parallelized inputs
+  if(class(raster)[1] == "PackedSpatRaster") {
+    raster <- terra::unwrap(raster)
+    pack <- TRUE
+  }
+  if(class(vector)[1] == "PackedSpatVector") {
+    vector <- sf::st_as_sf(terra::unwrap(vector))
+  }
+  
+  #Handle unpacked spatVector
+  if(class(vector)[1] == "SpatVector") {
+    vector <- sf::st_as_sf(vector)
+  }
+  
+  #If using raster package
+  if(class(raster)[1] == "RasterLayer" | class(raster)[1] == "RasterStack" | class(raster)[1] == "RasterBrick") {
+    
+    #Perform operation
+    if (raster::crs(vector) != raster::crs(raster)) { #if raster and vector aren't in same projection, change vector to match
+      if(verbose) {print("Projecting vector")}
+      vector <- sf::st_transform(vector, raster::crs(raster)) 
+    } else {
+      if(verbose) {print("Vector already in raster CRS")}
+    }
+    if(verbose) {print("Clipping")}
+    r <- raster::crop(raster,
+                      vector)
+    if(mask) {
+      r <- r |> raster::mask(vector)
+    }
+    
+    return(r)
+    
+  } else { #terra package
+    
+    #Perform operation
+    if (terra::crs(vector) != terra::crs(raster)) { #if raster and vector aren't in same projection, change vector to match
+      if(verbose) {print("Projecting vector")}
+      vector <- sf::st_transform(vector, terra::crs(raster)) 
+    } else {
+      if(verbose) {print("Vector already in raster CRS")}
+    }
+    if(verbose) {print("Clipping")}
+    r <- terra::crop(raster,
+                     vector,
+                     mask = mask) #crop & mask
+    
+    #Repack if was packed coming in (i.e. parallelized)
+    if(pack) {
+      r <- terra::wrap(r)
+    }
+    return(r)
+    
+  }
+}
+
+names(hisdac)
+
+hisdacRecent <- hisdac |> terra::subset(c("2000_BUA", "2005_BUA", "2010_BUA", "2015_BUA", "2020_BUA"))
+
+hisdacRecentCropped <- crop.careful.universal(raster = hisdacRecent, vector = west, mask = TRUE, verbose = TRUE)
+
+hisdacRecentCroppedClean <-  ifel(hisdacRecentCropped == 0, NA, hisdacRecentCropped)
+
+#hisdacList <- lapply(1:terra::nlyr(hisdacRecentCroppedClean), function(i) terra::rast(hisdacRecentCroppedClean, i))
+#names(hisdacList) <- names(hisdacRecentCroppedClean)
+
+rm(hisdac, hisdacRecent, hisdacRecentCropped)
+
+# buffer the raster
+hisdacRecentCroppedClean1kmBuff <- hisdacRecentCroppedClean |>
+  terra::buffer(width = 1000, background = NA) %>%
+  terra::ifel(. == 0, 1, .)
+
+hisdacRecentCroppedClean4kmBuff <- hisdacRecentCroppedClean |>
+  terra::buffer(width = 4000, background = NA) %>%
+  terra::ifel(. == 0, 1, .)
+  
+
+rm(hisdacRecentCroppedClean)
+gc()
+
+years <- seq(2000,2021)
+
+#A function to get the area burned by FIRED fires within 1km and 4km of HISDAC built up areas (BUA)
+#Takes in a year as an integer; valid for 2020-2021 as this is when the FIRED dataset is available
+get.fired.near.built.up.year <- function(yr) {
+  #Get layer to work with
+  if(yr >= 2000 & yr < 2005) {
+    hisdacYr = "2000_BUA"
+  } else if (yr >= 2005 & yr < 2010) {
+    hisdacYr = "2005_BUA"
+  }  else if (yr >= 2010 & yr < 2015) {
+    hisdacYr = "2010_BUA"
+  }  else if (yr >= 2015 & yr < 2020) {
+    hisdacYr = "2015_BUA"
+  }  else if (yr >= 2020) {
+    hisdacYr = "2020_BUA"
+  } 
+  hisdac1km <- hisdacRecentCroppedClean1kmBuff |> terra::subset(c(hisdacYr))
+  hisdac4km <- hisdacRecentCroppedClean4kmBuff |> terra::subset(c(hisdacYr))
+
+  fires <- firedPerimsWestNoCrop |>
+    dplyr::filter(ig_year == yr) |>
+    dplyr::group_by(ig_year) |>
+    dplyr::summarise(geom = st_union(geom)) |>
+    dplyr::ungroup() |>
+    sf::st_transform(terra::crs(hisdacRecentCroppedClean4kmBuff)) |>
+    terra::vect()
+  
+  bua1k <- terra::zonal(x = hisdac1km, z = fires, fun = "sum", touches = FALSE, na.rm = TRUE) |>
+    dplyr::mutate(year = yr, zone = "km1", pixSum = .data[[hisdacYr]]) |>
+    dplyr::select(-{{hisdacYr}})
+  bua4k <- terra::zonal(x = hisdac4km, z = fires, fun = "sum", touches = FALSE, na.rm = TRUE) |>
+    dplyr::mutate(year = yr, zone = "km4", pixSum = .data[[hisdacYr]]) |>
+    dplyr::select(-{{hisdacYr}})
+  
+  outs <- rbind(bua1k, bua4k)
+
+  return(outs)
+}
+
+
+tic()
+areasList <- years |> purrr::map(~ get.fired.near.built.up.year(yr = .x)) #use function to calculate burned areas within 1 & 4km of BUA
+toc()
+
+allAreas <- dplyr::bind_rows(areasList) |>
+  dplyr::mutate(areaHa = pixSum * 0.09) |> #calculate area from pixel count
+  dplyr::select(-pixSum) |>
+  rbind(westBurnedNoCrop |> #add in FIRED burned area stats
+          dplyr::rename(year = ig_year, areaHa = totBurnHa) |>
+          dplyr::mutate(zone = "allBurned"))
+
+allAreasWide <- allAreas |>
+  tidyr::pivot_wider(names_from = zone, values_from = areaHa) |>
+  dplyr::mutate(km1to4 = km4 - km1,
+                kmOver4 = allBurned - km4) |>
+  dplyr::filter(year != 2021 & year != 2000)
+
+allAreasComplete <- allAreasWide |> tidyr::pivot_longer(names_to = "zone", cols = km1:kmOver4, values_to = "ha")
+
+allAreasWidePerc <- allAreasWide |>
+  dplyr::mutate(percKm1All = (km1 / allBurned) * 100,
+                percKm4All = (km4 / allBurned) * 100)
+
+write_csv(allAreasComplete, here::here('data', 'west_fired_burned_hisdac_long.csv'))
+write_csv(allAreasWidePerc, here::here('data', 'west_fired_burned_hisdac_wide_perc.csv'))
+
+```
+
+
+# Get thiel-sen fits
+
+```{r}
+
+#Run thiel-sen fits
+theilSenFitWestAll <- mblm::mblm(allBurned ~ year, allAreasWidePerc, repeated = FALSE)
+theilSenFitWest1km <- mblm::mblm(km1 ~ year, allAreasWidePerc, repeated = FALSE)
+theilSenFitWest4km <- mblm::mblm(km4 ~ year, allAreasWidePerc, repeated = FALSE)
+theilSenFitWest1kmPerc <- mblm::mblm(percKm1All ~ year, allAreasWidePerc, repeated = FALSE)
+theilSenFitWest4kmPerc <- mblm::mblm(percKm4All ~ year, allAreasWidePerc, repeated = FALSE)
+
+#Function to get value in a certain year from theil-sen
+get.thiel.sen.point <- function(data, yr) {
+  return(as.integer(data$coefficients["(Intercept)"] + (yr * data$coefficients["year"])))
+}
+
+#Function to get 'by' percent increase between two years from theil-sen
+get.thiel.sen.increase.by.percent <- function(data, yr1, yr2) {
+  yr1v <- get.thiel.sen.point(data, yr1)
+  yr2v <- get.thiel.sen.point(data, yr2)
+  return(((yr2v - yr1v) / yr1v) * 100)
+}
+
+#Function to get 'to' percent increase between two years from theil-sen
+get.thiel.sen.increase.to.percent <- function(data, yr1, yr2) {
+  yr1v <- get.thiel.sen.point(data, yr1)
+  yr2v <- get.thiel.sen.point(data, yr2)
+  return((yr2v / yr1v) * 100)
+}
+
+
+#Get estimator significance
+summary.mblm(theilSenFitWestAll)
+summary.mblm(theilSenFitWest1km)
+summary.mblm(theilSenFitWest4km)
+summary.mblm(theilSenFitWest1kmPerc)
+summary.mblm(theilSenFitWest4kmPerc)
+
+
+
+# Calculate % increases
+get.thiel.sen.increase.to.percent(theilSenFitWestAll, 2001, 2020)
+get.thiel.sen.increase.to.percent(theilSenFitWest1km, 2001, 2020)
+get.thiel.sen.increase.to.percent(theilSenFitWest4km, 2001, 2020)
+
+```
+
+
+
+
+# Visualize and get fits
+
+
+```{r}
+
+#Graphs
+
+allBurnedPlot <- ggplot(allAreasWidePerc) +
+  geom_col(aes(x = year, y = allBurned), fill = "maroon") +
+#  labs(title = "Western U.S. Burned Area 1984-2021") +
+  xlab("Year") +
+  ylab("Total area burned by wildfire (ha)") +
+  scale_y_continuous(labels=comma) +
+  geom_abline(intercept = theilSenFitWestAll$coefficients["(Intercept)"],
+              slope = theilSenFitWestAll$coefficients["year"],
+              linetype = "dashed",
+              linewidth = 0.8) +
+  theme_light()
+
+#ggsave(here::here('outputs', 'west_ac_burned.png'))
+
+
+km1Plot <- ggplot(allAreasWidePerc, aes(x = year, y = km1)) +
+  geom_col(fill = "steelblue") +
+#  labs(title = "Western U.S. Burned Area 1984-2021") +
+  xlab("Year") +
+  ylab("Total area burned by wildfire (ha)") +
+  scale_y_continuous(labels=comma) +
+  geom_abline(intercept = theilSenFitWest1km$coefficients["(Intercept)"],
+              slope = theilSenFitWest1km$coefficients["year"],
+              linetype = "dashed",
+              linewidth = 0.8) +
+  theme_light()
+
+km4Plot <- ggplot(allAreasWidePerc, aes(x = year, y = km4)) +
+  geom_col(fill = "orange2") +
+#  labs(title = "Western U.S. Burned Area 1984-2021") +
+  xlab("Year") +
+  ylab("Total area burned by wildfire (ha)") +
+  scale_y_continuous(labels=comma) +
+  geom_abline(intercept = theilSenFitWest4km$coefficients["(Intercept)"],
+              slope = theilSenFitWest4km$coefficients["year"],
+              linetype = "dashed",
+              linewidth = 0.8) +
+  theme_light()
+
+
+combinedPlot <- ggplot(allAreasComplete |> dplyr::filter(zone == "km1" | zone == "km4" | zone == "allBurned")) +
+  geom_col(aes(x = year, y = ha, fill = zone), position = "dodge") +
+#  labs(title = "Western U.S. Burned Area 1984-2021") +
+  xlab("Year") +
+  ylab("Total area burned by wildfire (ha)") +
+  scale_y_continuous(labels=comma) +
+  geom_abline(intercept = theilSenFitWestAll$coefficients["(Intercept)"],
+              slope = theilSenFitWestAll$coefficients["year"],
+              linetype = "dashed",
+              linewidth = 0.8) +
+  theme_light() + 
+  scale_fill_manual(values = c("maroon", "steelblue", "orange2"))
+
+combinedPlotKm <- ggplot(allAreasComplete |> dplyr::filter(zone == "km1" | zone == "km4")) +
+  geom_col(aes(x = year, y = ha, fill = zone), position = "dodge") +
+#  labs(title = "Western U.S. Burned Area 1984-2021") +
+  xlab("Year") +
+  ylab("Total area burned by wildfire (ha)") +
+  scale_y_continuous(labels=comma) +
+  geom_abline(intercept = theilSenFitWest4km$coefficients["(Intercept)"],
+              slope = theilSenFitWest4km$coefficients["year"],
+              linetype = "dashed",
+              linewidth = 0.8,
+              color = "orange3") +
+  geom_abline(intercept = theilSenFitWest1km$coefficients["(Intercept)"],
+              slope = theilSenFitWest1km$coefficients["year"],
+              linetype = "dashed",
+              linewidth = 0.8,
+              color = "steelblue4") +
+  theme_light() + 
+  theme(legend.position = "bottom") +
+  scale_fill_manual(values = c("steelblue", "orange2"), labels = c("Area burned within 1 km of built-up area", "Area burned within 4 km of built-up area")) +
+  labs(fill = "")
+
+allBurnedPlot
+km1Plot
+km4Plot
+combinedPlot
+combinedPlotKm
+
+finalPlot <- (allBurnedPlot / combinedPlotKm) + plot_annotation(tag_levels = 'A', tag_prefix = "(", tag_suffix = ")", tag_sep = "")
+
+finalPlot 
+
+ggsave(here::here('outputs', 'west_ha_burned_fired_hisdac.png'))
+
+
+
+```
+
+
