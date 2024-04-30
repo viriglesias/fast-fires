@@ -105,7 +105,7 @@ ggplot(westBurned, aes(x = Burn_Yr, y = totBurnHa)) +
               linetype = "dashed",
               linewidth = 0.8) +
   theme_light()
-ggsave(here::here('outputs', 'west_ac_burned.png'))
+ggsave(here::here('figs', 'west_ac_burned.png'))
 
 #Get estimator significance
 summary.mblm(theilSenFitWest)

@@ -403,7 +403,7 @@ finalPlot <- (allBurnedPlot / combinedPlotKm) + plot_annotation(tag_levels = 'A'
 
 finalPlot 
 
-ggsave(here::here('outputs', 'west_ha_burned_fired_hisdac.png'))
+ggsave(here::here('figs', 'west_ha_burned_fired_hisdac.png'))
 
 
 
