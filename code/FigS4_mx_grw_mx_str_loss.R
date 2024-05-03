@@ -220,9 +220,16 @@ join <- join %>% filter(!INCIDENT_ID %in% filter$INCIDENT_ID)
 # Get the number of unique events
 print(length(unique(join$INCIDENT_ID)))
 print(length(unique(join$FIRED_ID)))
-# Print the mean/median
+# Print the mean/median/mode
 print(mean(join$lag, na.rm=TRUE))
 print(median(join$lag, na.rm=TRUE))
+
+getmode <- function(x) {
+ ux <- unique(x)
+ ux[which.max(tabulate(match(x, ux)))]
+}
+
+print(getmode(as.integer(join$lag)))
 
 # Calculate the lag per fire
 event_lags <- join %>% 
