@@ -1,0 +1,71 @@
+EPA Level I Ecoregion,EPA Level I Ecoregion Code,EPA Level III Ecoregion,EPA Level III Ecoregion Code,Single Day Maximum Fire Growth Rate Theil-Sen Coefficient (ha/day/year),Single Day Maximum Fire Growth Rate P-value,Single Day Maximum Fire Growth Rate P-value Significance,Fire Duration Theil-Sen Coefficient (day/year),Fire Duration P-value,Fire Duration P-value Significance,Simple Fire Spread Rate Theil-Sen Coefficient (ha/day/year),Simple Fire Spread Rate P-value,Simple Fire Spread Rate P-value Significance
+NORTHERN FORESTS,5,Northern Minnesota Wetlands,49,14.3,1.5e-12,***,-0.1,2.9e-04,***,0.0,1.6e-15,***
+NORTHERN FORESTS,5,Northern Lakes and Forests,50,-1.7,1.1e-02,*,-0.1,1.9e-10,***,-0.0,2.0e-01,-
+NORTHWESTERN FORESTED MOUNTAINS,6,Cascades,4,2.1,1.5e-213,***,0.2,1.3e-169,***,0.0,4.9e-147,***
+NORTHWESTERN FORESTED MOUNTAINS,6,Sierra Nevada,5,0.0,7.5e-43,***,0.0,4.2e-03,**,0.0,1.3e-65,***
+NORTHWESTERN FORESTED MOUNTAINS,6,Eastern Cascades Slopes and Foothills,9,-3.1,4.2e-03,**,0.0,5.6e-06,***,-0.0,1.0e-02,*
+NORTHWESTERN FORESTED MOUNTAINS,6,Blue Mountains,11,0.0,9.1e-19,***,0.0,5.2e-14,***,0.0,1.4e-10,***
+NORTHWESTERN FORESTED MOUNTAINS,6,Northern Rockies,15,0.0,5.2e-09,***,0.1,6.5e-58,***,0.0,5.2e-10,***
+NORTHWESTERN FORESTED MOUNTAINS,6,Idaho Batholith,16,0.0,2.0e-17,***,0.1,2.9e-92,***,0.0,1.4e-25,***
+NORTHWESTERN FORESTED MOUNTAINS,6,Middle Rockies,17,0.0,4.8e-62,***,0.0,8.6e-17,***,-0.0,4.0e-56,***
+NORTHWESTERN FORESTED MOUNTAINS,6,Wasatch and Uinta Mountains,19,0.0,6.3e-01,-,0.0,5.7e-06,***,0.0,1.6e-07,***
+NORTHWESTERN FORESTED MOUNTAINS,6,Southern Rockies,21,0.0,6.4e-04,***,0.0,5.3e-51,***,-0.0,1.8e-01,-
+NORTHWESTERN FORESTED MOUNTAINS,6,Canadian Rockies,41,-3.6,6.1e-17,***,-0.2,2.1e-13,***,-0.0,8.4e-15,***
+NORTHWESTERN FORESTED MOUNTAINS,6,North Cascades,77,0.0,6.6e-04,***,0.0,1.8e-02,*,0.0,1.2e-01,-
+NORTHWESTERN FORESTED MOUNTAINS,6,Klamath Mountains/California High North Coast Range,78,8.9,1.3e-131,***,0.3,1.5e-93,***,0.0,5.6e-92,***
+MARINE WEST COAST FOREST,7,Coast Range,1,3.1,1.5e-51,***,0.0,2.1e-09,***,0.0,2.5e-25,***
+MARINE WEST COAST FOREST,7,Puget Lowland,2,3.6,1.7e-01,-,-0.2,6.0e-01,-,0.0,3.6e-05,***
+MARINE WEST COAST FOREST,7,Willamette Valley,3,0.0,4.3e-01,-,-0.1,1.6e-02,*,0.0,1.6e-01,-
+EASTERN TEMPERATE FORESTS,8,East Central Texas Plains,33,0.0,7.0e-29,***,0.0,1.9e-02,*,0.0,1.4e-29,***
+EASTERN TEMPERATE FORESTS,8,South Central Plains,35,0.0,0.0e+00,***,0.0,1.7e-13,***,0.0,0.0e+00,***
+EASTERN TEMPERATE FORESTS,8,Ouachita Mountains,36,-2.1,2.7e-135,***,0.0,2.7e-01,-,-0.0,2.9e-127,***
+EASTERN TEMPERATE FORESTS,8,Arkansas Valley,37,0.0,2.4e-05,***,0.0,4.0e-22,***,0.0,4.0e-02,*
+EASTERN TEMPERATE FORESTS,8,Boston Mountains,38,0.0,4.6e-03,**,0.0,1.6e-06,***,-0.0,1.7e-01,-
+EASTERN TEMPERATE FORESTS,8,Ozark Highlands,39,0.0,7.0e-03,**,0.0,3.3e-62,***,-0.0,3.0e-05,***
+EASTERN TEMPERATE FORESTS,8,Piedmont,45,0.0,1.8e-142,***,0.0,6.5e-03,**,0.0,1.4e-151,***
+EASTERN TEMPERATE FORESTS,8,Eastern Corn Belt Plains,55,-6.7,3.2e-05,***,-0.2,9.1e-02,-,-0.0,5.2e-03,**
+EASTERN TEMPERATE FORESTS,8,Middle Atlantic Coastal Plain,63,0.0,7.0e-101,***,0.0,7.8e-143,***,-0.0,1.4e-20,***
+EASTERN TEMPERATE FORESTS,8,Southeastern Plains,65,0.0,9.1e-92,***,0.0,0.0e+00,***,-0.0,0.0e+00,***
+EASTERN TEMPERATE FORESTS,8,Blue Ridge,66,0.0,5.1e-02,-,-0.1,5.2e-01,-,0.0,6.6e-09,***
+EASTERN TEMPERATE FORESTS,8,Ridge and Valley,67,1.2,7.4e-15,***,-0.1,1.0e-16,***,0.0,1.6e-23,***
+EASTERN TEMPERATE FORESTS,8,Southwestern Appalachians,68,0.0,6.5e-04,***,-0.2,7.2e-48,***,0.0,3.4e-01,-
+EASTERN TEMPERATE FORESTS,8,Central Appalachians,69,0.0,2.8e-14,***,0.0,2.5e-05,***,0.0,1.0e-30,***
+EASTERN TEMPERATE FORESTS,8,Western Allegheny Plateau,70,0.0,3.8e-01,-,0.0,8.1e-01,-,-0.0,4.9e-02,*
+EASTERN TEMPERATE FORESTS,8,Interior Plateau,71,0.0,2.2e-03,**,-0.1,1.2e-10,***,0.0,1.2e-04,***
+EASTERN TEMPERATE FORESTS,8,Interior River Valleys and Hills,72,0.0,3.1e-01,-,0.0,7.4e-01,-,0.0,3.8e-01,-
+EASTERN TEMPERATE FORESTS,8,Mississippi Alluvial Plain,73,0.0,4.5e-150,***,0.0,8.3e-21,***,-0.0,1.8e-72,***
+EASTERN TEMPERATE FORESTS,8,Mississippi Valley Loess Plains,74,0.0,7.2e-06,***,0.0,5.6e-01,-,0.0,4.5e-09,***
+EASTERN TEMPERATE FORESTS,8,Southern Coastal Plain,75,0.0,3.9e-121,***,0.0,2.7e-45,***,0.0,3.2e-29,***
+EASTERN TEMPERATE FORESTS,8,Atlantic Coastal Pine Barrens,84,-11.9,1.2e-11,***,0.0,3.5e-01,-,-0.0,1.0e-14,***
+GREAT PLAINS,9,High Plains,25,0.0,1.3e-09,***,0.0,1.8e-04,***,0.0,1.5e-08,***
+GREAT PLAINS,9,Southwestern Tablelands,26,2.4,4.5e-13,***,0.0,3.7e-22,***,0.0,2.9e-10,***
+GREAT PLAINS,9,Central Great Plains,27,2.0,0.0e+00,***,0.0,2.3e-73,***,0.0,0.0e+00,***
+GREAT PLAINS,9,Flint Hills,28,0.0,8.2e-12,***,0.0,3.7e-122,***,-0.0,8.0e-78,***
+GREAT PLAINS,9,Cross Timbers,29,1.4,5.0e-100,***,0.0,7.6e-10,***,0.0,3.2e-109,***
+GREAT PLAINS,9,Edwards Plateau,30,5.0,2.5e-153,***,0.0,5.8e-24,***,0.0,4.4e-194,***
+GREAT PLAINS,9,Southern Texas Plains,31,-1.4,7.5e-12,***,0.0,1.1e-16,***,-0.0,1.1e-08,***
+GREAT PLAINS,9,Texas Blackland Prairies,32,0.0,6.3e-02,-,0.0,2.2e-08,***,-0.0,7.0e-02,-
+GREAT PLAINS,9,Western Gulf Coastal Plain,34,0.0,5.6e-137,***,0.0,4.7e-30,***,-0.0,4.6e-110,***
+GREAT PLAINS,9,Central Irregular Plains,40,0.0,1.4e-50,***,0.0,1.2e-01,-,0.0,4.0e-60,***
+GREAT PLAINS,9,Northwestern Glaciated Plains,42,0.0,1.2e-01,-,0.0,4.2e-01,-,0.0,5.2e-08,***
+GREAT PLAINS,9,Northwestern Great Plains,43,0.0,3.7e-01,-,0.0,3.8e-20,***,-0.0,8.4e-01,-
+GREAT PLAINS,9,Nebraska Sand Hills,44,5.4,1.3e-02,*,0.0,3.4e-02,*,0.0,6.5e-04,***
+GREAT PLAINS,9,Western Corn Belt Plains,47,0.0,3.9e-01,-,0.0,8.3e-01,-,-0.0,1.4e-02,*
+GREAT PLAINS,9,Lake Agassiz Plain,48,-5.4,9.4e-06,***,-0.4,1.5e-04,***,-0.0,1.1e-02,*
+NORTH AMERICAN DESERTS,10,Columbia Plateau,10,13.9,4.2e-279,***,0.0,4.0e-11,***,0.0,3.4e-261,***
+NORTH AMERICAN DESERTS,10,Snake River Plain,12,14.3,7.7e-149,***,0.0,9.0e-07,***,0.0,1.4e-140,***
+NORTH AMERICAN DESERTS,10,Central Basin and Range,13,4.3,1.4e-227,***,0.0,5.6e-62,***,0.0,6.9e-191,***
+NORTH AMERICAN DESERTS,10,Mojave Basin and Range,14,2.4,9.1e-04,***,-0.1,1.4e-08,***,0.0,4.7e-03,**
+NORTH AMERICAN DESERTS,10,Wyoming Basin,18,5.9,1.1e-08,***,0.0,1.1e-02,*,0.0,1.2e-12,***
+NORTH AMERICAN DESERTS,10,Colorado Plateaus,20,0.0,8.4e-04,***,0.0,4.1e-09,***,-0.0,9.9e-01,-
+NORTH AMERICAN DESERTS,10,Arizona/New Mexico Plateau,22,-7.2,6.8e-03,**,-0.1,1.6e-02,*,-0.0,2.5e-01,-
+NORTH AMERICAN DESERTS,10,Chihuahuan Deserts,24,0.0,6.3e-03,**,0.0,5.7e-05,***,0.0,6.0e-03,**
+NORTH AMERICAN DESERTS,10,Northern Basin and Range,80,0.0,1.7e-10,***,0.0,1.0e-01,-,0.0,1.7e-10,***
+NORTH AMERICAN DESERTS,10,Sonoran Basin and Range,81,0.0,6.3e-01,-,0.0,9.0e-02,-,-0.0,3.1e-01,-
+MEDITERRANEAN CALIFORNIA,11,Central California Foothills and Coastal Mountains,6,14.3,1.1e-216,***,0.0,6.5e-36,***,0.0,6.5e-162,***
+MEDITERRANEAN CALIFORNIA,11,Central California Valley,7,1.8,1.3e-09,***,0.0,1.2e-02,*,0.0,3.6e-23,***
+MEDITERRANEAN CALIFORNIA,11,Southern California Mountains,8,15.0,9.0e-04,***,0.0,1.6e-01,-,0.1,6.4e-10,***
+MEDITERRANEAN CALIFORNIA,11,Southern California/Northern Baja Coast,85,2.0,3.6e-01,-,0.0,7.8e-01,-,0.0,3.7e-01,-
+SOUTHERN SEMI-ARID HIGHLANDS,12,Madrean Archipelago,79,2.1,2.7e-07,***,0.0,7.2e-01,-,0.0,9.5e-06,***
+TEMPERATE SIERRAS,13,Arizona/New Mexico Mountains,23,5.4,1.9e-149,***,0.0,3.3e-52,***,0.0,1.2e-158,***
+TROPICAL WET FORESTS,15,Southern Florida Coastal Plain,76,0.0,3.5e-145,***,0.1,3.0e-240,***,0.0,1.2e-125,***

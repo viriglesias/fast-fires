@@ -1,0 +1,31 @@
+State,Total number of fires that threatened any structure,Total number of structures damaged or destroyed,Maximum daily fire growth rate (ha/day),Fast fire threshold (ha/day),Number of fast fires,Number of structures damaged or destroyed by fast fires
+Alabama,36,3,408,No convergence,NA,NA
+Arizona,235,1051,23784,1630,36,955
+Arkansas,25,34,1138,No convergence,NA,NA
+California,526,66715,41408,2870,75,60886
+Colorado,121,3105,22045,5540,7,1552
+Florida,303,600,6611,350,81,396
+Georgia,22,44,4164,No convergence,NA,NA
+Idaho,392,366,47461,1610,100,207
+Kansas,77,177,81420,2300,5,139
+Louisiana,40,57,2404,No convergence,NA,NA
+Michigan,2,120,3177,No convergence,NA,NA
+Minnesota,35,152,18074,No convergence,NA,NA
+Mississippi,41,11,859,No convergence,NA,NA
+Missouri,22,30,1417,No convergence,NA,NA
+Montana,252,719,32499,5620,8,380
+Nevada,243,458,59246,2290,59,147
+New Jersey,5,16,2812,No convergence,NA,NA
+New Mexico,130,926,15584,2130,33,834
+New York,2,2,365,No convergence,NA,NA
+North Carolina,42,44,3606,550,11,33
+North Dakota,12,12,1610,No convergence,NA,NA
+Oklahoma,358,1604,44499,1340,35,1377
+Oregon,212,547,129911,9120,9,228
+South Carolina,21,212,5302,No convergence,NA,NA
+South Dakota,49,256,12665,820,23,242
+Texas,350,1049,57979,770,117,833
+Utah,200,1390,58258,4950,15,1107
+Virginia,15,7,644,No convergence,NA,NA
+Washington,172,1278,33895,490,102,1217
+Wyoming,124,573,11978,1900,19,470

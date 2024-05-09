@@ -16,16 +16,18 @@ options(scipen = 999) #Turn scientific notation on and off (0 = on, 999 = off)
 fontname <- "Times New Roman"
 fontsize <- 8
 
-# Table 1 ----
-t1 <- read_sheet("https://docs.google.com/spreadsheets/d/1KZ1WNwOBnQNlIx3-D-hb_QURGJc2typYzKwe81F3-TU/edit#gid=2134256498",
+# Ecoregion Fire Characteristic Summaries ----
+efcsTableNum <- "S1"
+
+efcs <- read_sheet("https://docs.google.com/spreadsheets/d/1KZ1WNwOBnQNlIx3-D-hb_QURGJc2typYzKwe81F3-TU/edit#gid=2134256498",
            sheet = NULL)
 
 #clean up extra rows and digits
-t1clean <- t1[1:13, ] %>%
+efcsClean <- efcs[1:13, ] %>%
   mutate_if(is.double, ~ round(., digits = 1))
 
 #Fix names and add units
-names(t1clean) <- c("Region",
+names(efcsClean) <- c("Region",
                     "Median Single Day Maximum Fire Growth Rate (ha / day)",
                     "Mean Single Day Maximum Fire Growth Rate (ha / day)",
                     "Maximum Single Day Maximum Fire Growth Rate (ha / day)",
@@ -40,42 +42,45 @@ names(t1clean) <- c("Region",
                     "Fast Fires Percentage of Total Fires (%)")
 
 #Re-order rows and take out L1 keys
-t1cleanEPA <- t1clean[1:10,] %>%
+efcsCleanEPA <- efcsClean[1:10,] %>%
   mutate(Region = str_trim(gsub("\\d+", "", Region))) %>%
   arrange(Region) %>%
   mutate(Region = paste(Region, "*"))
 
-t1cleanNonEPA <- t1clean[11:13,]
-t1cleanNonEPA[3,1] <- 'CALIFORNIA'
-t1cleanNonEPA[2,1] <- 'WESTERN US'
+efcsCleanNonEPA <- efcsClean[11:13,]
+efcsCleanNonEPA[3,1] <- 'CALIFORNIA'
+efcsCleanNonEPA[2,1] <- 'WESTERN US'
 
-t1clean2 <- rbind(t1cleanNonEPA, t1cleanEPA)
+efcsClean2 <- rbind(efcsCleanNonEPA, efcsCleanEPA)
 
 
-ft1 <- flextable(t1clean2) %>%
+efcs_ft1 <- flextable(efcsClean2) %>%
   bold(i = 1:3, bold = TRUE) %>%
   font(fontname = fontname, part = "all")
 
-ft1
+efcs_ft1
 
-write_csv(t1clean2, here::here('outputs', 'science.adk5757_table_s1.csv'))
+write_csv(efcsClean2, here::here('outputs', paste0('science.adk5757_table_', efcsTableNum, '.csv')))
 
-# Table 2 ----
-t2 <- read_sheet("https://docs.google.com/spreadsheets/d/10D-wZtRMs9wP7tvBk0oR8FCt3n-sLMe59uxceUI8GSY/edit#gid=1717470864", 
+# Land cover Fire Characteristic Summaries for CONUS and the western United States ----
+lcfcSummsTableNum <- "S3"
+lcfcSumms <- read_sheet("https://docs.google.com/spreadsheets/d/10D-wZtRMs9wP7tvBk0oR8FCt3n-sLMe59uxceUI8GSY/edit#gid=1717470864", 
                  sheet = NULL)
 
 #clean up extra digits
-t2clean <- t2 %>% mutate_if(is.double, ~ round(., digits = 1))
+lcfcSummsClean <- lcfcSumms %>% mutate_if(is.double, ~ round(., digits = 1))
 
-write_csv(t2clean, here::here('outputs', 'science.adk5757_table_s2.csv'))
+write_csv(lcfcSummsClean, here::here('outputs', paste0('science.adk5757_table_', lcfcSummsTableNum, '.csv')))
 
 
 
-# Table 3 ----
-t3 <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1tOsoVVqjI-0_Dqu3zdNBt0caOBnu9TbDA9IHYwxZSkI/edit#gid=286868974",
+# Statistics for area burned during the day of maximum fire growth for land cover types within ecoregions ----
+dayOfMaxGrowthEcoStatsTableNum <- "S2"
+
+dayOfMaxGrowthEcoStats <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1tOsoVVqjI-0_Dqu3zdNBt0caOBnu9TbDA9IHYwxZSkI/edit#gid=286868974",
                                 sheet = NULL)
 
-t3clean <- t3[2:nrow(t3), ] %>%
+dayOfMaxGrowthEcoStatsClean <- dayOfMaxGrowthEcoStats[2:nrow(dayOfMaxGrowthEcoStats), ] %>%
   mutate(`Ecoregion_level-I` = str_trim(gsub("\\d+", "", `Ecoregion_level-I`)), .keep = "unused") %>%
   arrange(`Ecoregion_level-I`) %>%
   select(-`...10`) %>%
@@ -84,7 +89,7 @@ t3clean <- t3[2:nrow(t3), ] %>%
          Land_cover = ifelse(Land_cover == "Non vegetated*" | Land_cover == "Non vegetated", "Non-vegetated", Land_cover))
 
 #Convert to ha for consistency w/ rest of paper
-t3cleanHa <- t3clean %>%
+dayOfMaxGrowthEcoStatsCleanHa <- dayOfMaxGrowthEcoStatsClean %>%
   mutate(Area_burned_total = Area_burned_total * 100,
          Area_burned_max_growth_sum = Area_burned_max_growth_sum * 100,
          Area_burned_max_growth_max = Area_burned_max_growth_max * 100) %>%
@@ -92,7 +97,7 @@ t3cleanHa <- t3clean %>%
   mutate_if(is.double, ~ round(., digits = 1))
 
 #Fix names and add units
-names(t3cleanHa) <- c("EPA Level I Ecoregion",
+names(dayOfMaxGrowthEcoStatsCleanHa) <- c("EPA Level I Ecoregion",
                     "Modis MCD12Q1 Land cover",
                     "Number of Fire Events",
                     "Total Area Burned (ha)",
@@ -102,24 +107,26 @@ names(t3cleanHa) <- c("EPA Level I Ecoregion",
                     "Percent of Total Area Burned During Day of Maximum Growth for the Fastest Event (%)",
                     "Average Area Burned During Day of Maximum Growth (ha)")
 
-write_csv(t3cleanHa, here::here('outputs', 'science.adk5757_table_s3.csv'))
+write_csv(dayOfMaxGrowthEcoStatsCleanHa, here::here('outputs', paste0('science.adk5757_table_', dayOfMaxGrowthEcoStatsTableNum, '.csv')))
 
 
-# Table 4 - MAX ----
+# Top 100 fastest fires in the US - MAX ----
 
 
-# Table 5 ----
+# Fire characteristic trend coefficients and p-values by EPA Level III Ecoregions ----
 
-t5 <-  googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1WBDStHwRYouqaSGyV8fDVuvjjUGXLm563k1DRGFcsPM/edit#gid=2014372530",
+fcTrendsPEcoTableNum <- "S6"
+
+fcTrendsPEco <-  googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1WBDStHwRYouqaSGyV8fDVuvjjUGXLm563k1DRGFcsPM/edit#gid=2014372530",
                                  sheet = NULL)
 
-t5clean <- t5 %>%
+fcTrendsPEcoClean <- fcTrendsPEco %>%
   select(-order) %>%
   mutate(Level_3 = str_trim(gsub("\\d+", "", Level_3)),
          US_L1CODE = as.numeric(gsub("[^0-9.]", "", Level_1)),
          Level_1 = str_trim(gsub("\\d+", "", Level_1)))
 
-t5cleanSig <- t5clean %>%
+fcTrendsPEcoCleanSig <- fcTrendsPEcoClean %>%
   mutate(fsr_p_sig = case_when(
       pval_fsr < 0.001 ~ "***",
       pval_fsr < 0.01 ~ "**",    
@@ -172,7 +179,7 @@ t5cleanSig <- t5clean %>%
                                    digits = 1)
          )
 
-names(t5cleanSig) <- c(
+names(fcTrendsPEcoCleanSig) <- c(
   "EPA Level I Ecoregion",
   "EPA Level I Ecoregion Code",
   "EPA Level III Ecoregion",
@@ -188,40 +195,44 @@ names(t5cleanSig) <- c(
   "Simple Fire Spread Rate P-value Significance"
 )
 
-ft5 <- flextable(t5cleanSig) %>%
+fcTrendsPEcoCleanSig_ft <- flextable(fcTrendsPEcoCleanSig) %>%
   font(fontname = fontname, part = "all")
 
-ft5
+fcTrendsPEcoCleanSig_ft
 
-write_csv(t5cleanSig, here::here('outputs', 'science.adk5757_table_s5.csv'))
+write_csv(fcTrendsPEcoCleanSig, here::here('outputs', paste0('science.adk5757_table_', fcTrendsPEcoTableNum, '.csv')))
 
-# Table 6 ----
 
-t6 <-  googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1aIU_iH3niQHSz8Fs3Wkc_-Tujz54QlFa6K1-oehv0Ms/edit#gid=91047183",
+
+# Temporal changes in fire growth rate for California and the western United States ----
+fgrTemporalChangesTableNum <- "S7"
+
+fgrTemporalChanges <-  googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1aIU_iH3niQHSz8Fs3Wkc_-Tujz54QlFa6K1-oehv0Ms/edit#gid=91047183",
                                  sheet = "formatted")
 
-t6clean <- t6 %>%
+fgrTemporalChangesClean <- fgrTemporalChanges %>%
   mutate_if(is.double, ~ round(., digits = 1))
 
-ft6 <- flextable(t6clean) %>%
+fgrTemporalChangesClean_ft <- flextable(fgrTemporalChangesClean) %>%
   font(fontname = fontname, part = "all") %>%
   fontsize(size = fontsize, part = "all")
 
-ft6
+fgrTemporalChangesClean_ft
 
-print(ft6, preview = "docx")
+print(fgrTemporalChangesClean_ft, preview = "docx")
 
-# Table 7 ----
+# Percent increases in maximum fire growth rate between 2001 and 2020 for California and the western United States ----
+percIncreasesFGRTableNum <- "S8"
 
-t7 <-  googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1Pai9RK3H_o29LcTKEKZBIdq098p2-JPKPSGX3VItRPs/edit#gid=0",
+percIncreasesFGR <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1Pai9RK3H_o29LcTKEKZBIdq098p2-JPKPSGX3VItRPs/edit#gid=0",
                                  sheet = NULL)
 
-t7clean <- t7 %>%
+percIncreasesFGRClean <- percIncreasesFGR %>%
   select(-`Modeled max growth_2001`,
          -`Modeled max growth_2020`,
          -`Modeled max growth_2020/Modeled max growth_2001`)
   
-names(t7clean) <- c("Region",
+names(percIncreasesFGRClean) <- c("Region",
                     "Mean maximum fire growth rate in 2001 (ha/day)",
                     "Median maximum fire growth rate in 2001 (ha/day)",
                     "Mean maximum fire growth rate in 2020 (ha/day)",
@@ -229,18 +240,33 @@ names(t7clean) <- c("Region",
                     "Mean maximum fire growth rate in 2020 as a percentage of mean maximum fire growth rate in 2001 (%)",
                     "Median maximum fire growth rate in 2020 as a percentage of median maximum fire growth rate in 2001 (%)")
 
-t7clean <- t7clean %>%
+percIncreasesFGRClean <- percIncreasesFGRClean %>%
   mutate("Mean maximum fire growth rate in 2020 as a percentage of mean maximum fire growth rate in 2001 (%)" = `Mean maximum fire growth rate in 2020 as a percentage of mean maximum fire growth rate in 2001 (%)` * 100,
           "Median maximum fire growth rate in 2020 as a percentage of median maximum fire growth rate in 2001 (%)" = `Median maximum fire growth rate in 2020 as a percentage of median maximum fire growth rate in 2001 (%)` * 100) %>%
   mutate_if(is.double, ~ round(., digits = 1))
 
-ft7 <- flextable(t7clean) %>%
+percIncreasesFGRClean_ft <- flextable(percIncreasesFGRClean) %>%
   font(fontname = fontname, part = "all") %>%
   fontsize(size = fontsize, part = "all") %>%
   set_table_properties(width = 1, layout = "autofit")
 
-ft7
+percIncreasesFGRClean_ft
 
-print(ft7, preview = "docx")
+print(percIncreasesFGRClean_ft, preview = "docx")
 
+
+# States threshold table ----
+sttTableNum <- "S5"
+sttDat <-  googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1k5g5oSTbgCgofHgcJzlA-uhSvoy_xkhDCHZ-9MD4XRw/edit#gid=1668931080",
+                                     sheet = NULL)
+
+sttClean <- sttDat |>
+  dplyr::select(-`Threshold 2 (ha/day [raw data])`, -`Number of fires faster than threshold 2`, -`Number of structures damaged or destroyed by fast fires as defined by threshold 2`) |>
+  dplyr::mutate(`Maximum daily fire growth rate (ha/day)` = round(`Maximum daily fire growth rate (ha/day)`),
+                `Number of fast fires` = as.character(`Number of fast fires`),
+                `Number of structures damaged or destroyed by fast fires` = as.character(`Number of structures damaged or destroyed by fast fires`),
+                `Fast fire threshold (ha/day)` = as.character(`Fast fire threshold (ha/day)`)) |>
+  dplyr::mutate(dplyr::across(`Number of fast fires`:`Number of structures damaged or destroyed by fast fires`, ~dplyr::na_if(.x, "NA")))
+
+readr::write_csv(sttClean, here::here('outputs', paste0('science.adk5757_table_', sttTableNum, '.csv')))
 
