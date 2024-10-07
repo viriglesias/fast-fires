@@ -14,10 +14,12 @@ First, we need to handle possible multiple entries due to the reporting nature f
 
 ```{r}
 icsdir <- '/Users/max/Library/CloudStorage/OneDrive-Personal/mcook/ics209-plus-fired/data/'
+
 # Load the complex associations table
 complex.df <- suppressMessages(
  read_csv(paste0(
-  icsdir,"tabular/raw/wf-incidents/ics209-plus_v2.0/ics209plus-wildfire/ics209-plus-wf_complex_associations_1999to2020.csv"
+  icsdir,
+  "tabular/raw/wf-incidents/ics209-plus_v2/ics209plus-wildfire/ics209-plus-wf_complex_associations_1999to2020.csv"
  ), show_col_types = FALSE)
 )
 
@@ -48,6 +50,7 @@ dim(complexes)
 ics <- bind_rows(complexes,no.complexes)
 rm(complexes,no.complexes,complex.df)
 gc()
+
 ```
 
 Summary statistics from the ICS209-PLUS:
@@ -91,12 +94,60 @@ paste0("Percent of Injuries: ",sum(ics.fast$INJURIES_TOTAL,na.rm=T)/sum(ics$INJU
 st_write(ics.fast, "../../data/spatial/mod/ics209plus_conus_fast_2000to2020.gpkg", delete_dsn=T)
 ```
 
+Look at distribution of fire size and speed for events which destroyed structures.
+
+```{r}
+# STUSPS for 11 Western US states
+west <- c("AZ", "CO", "NV", "WY", "CA", "ID", "WA", "OR", "NM", "MT", "UT")
+df <- ics %>% 
+ mutate(loss = if_else(STR_DESTROYED_RES_TOTAL > 0 | STR_DAMAGED_RES_TOTAL > 0, "Loss", "No Loss"),
+        region = if_else(STUSPS %in% west, "West", "East")) %>%
+ filter(FINAL_ACRES > 1) 
+
+stats <- df %>%
+ st_set_geometry(NULL) %>%
+ group_by(region, loss) %>%
+ summarize(
+  count = n(),
+  fire_size_mn = mean(FINAL_ACRES),
+  fire_size_md = median(FINAL_ACRES),
+  fire_size_mx = max(FINAL_ACRES)
+ ) %>%
+ ungroup()
+
+# Set font name for table
+fontname <- "Times New Roman"
+# Fix names and add units
+names(stats) <- c(
+ "Region","Structure Loss/Damage","Number of Fires", "Mean Fire Size (acres)",
+ "Median Fire Size (acres)","Maximum Fire Size (acres)")
+# Create the flextable
+ft <- flextable(stats) %>%
+ font(fontname = fontname, part = "all") %>%
+ autofit() %>% 
+ fit_to_width(7.5)
+ft
+# print(ft, preview = "docx")
+
+# Plot the histogram of fire size by whether the fire destroyed structures
+ggplot(data=df, aes(x=FINAL_ACRES, fill=factor(region))) +
+ geom_histogram(position="dodge", bins=50) +
+ facet_wrap(~loss) +
+ scale_x_continuous(trans = "log10", labels = label_number(suffix = " K", scale = 1e-3, accuracy = 1)) +
+ labs(fill="U.S. Region", y="Count", x="log(Fire Size (acres))") +
+ theme_light()
+
+rm(df, stats, fontname, ft)
+
+```
+
 Subset FIRED events to fast fires (max daily growth > 1620ha). Exclude cropland systems.
 
 ```{r include=F}
 # Load the BUPR summaries
 bupr <- read_csv("../../data/tabular/bupr_sums.csv",show_col_types = FALSE) %>%
  dplyr::select(id,bupr_sum,bupr_sum1km,bupr_sum4km)
+glimpse(bupr)
 
 # Remove fired that occurred predominantly in cropland landcover
 fired.fast <- fired %>% 
@@ -147,6 +198,19 @@ addin <- ics %>%
 ics.fired <- ics.fired %>% bind_rows(addin)
 
 rm(addin.fired,addin,fired.fast.qc)
+
+# glimpse(ics.fired)
+
+# Subset to fast fires
+ics.fired.fast <- ics.fired %>% 
+ filter(STUSPS != 'AK') %>%
+ # WITCH is in the new WITCH-POOMACHA record
+ filter(INCIDENT_NAME != "WITCH") %>% 
+ mutate(mx_grw_ha = mx_grw_km2*100,
+        tot_ar_ha = tot_ar_km2*100,
+        mx_grw_pct = (mx_grw_ha / tot_ar_ha)*100) %>%
+ filter(mx_grw_ha >= 1620)
+st_write(ics.fired.fast, "../../data/spatial/mod/ics-fired_fast_2001to2020.gpkg", delete_dsn=T)
 ```
 
 
@@ -248,7 +312,7 @@ ft1 <- flextable(cleaned.t1) %>%
  font(fontname = fontname, part = "all") %>%
  autofit() %>% fit_to_width(7.5)
 ft1
-print(ft1, preview = "docx")
+# print(ft1, preview = "docx")
 # Write to a CSV
 write_csv(cleaned.t1, "../../data/tabular/ics-fired_t20_cleaned.csv")
 
@@ -289,7 +353,7 @@ names(cleaned.ts3) <- c("Incident Name",
 fts3 <- flextable(cleaned.ts3) %>%
   font(fontname = fontname, part = "all")
 fts3
-print(fts3, preview = "docx")
+# print(fts3, preview = "docx")
 # Write to a CSV
 write_csv(cleaned.ts3, "../../data/tabular/ics-fired_t100_cleaned.csv")
 
@@ -314,11 +378,11 @@ Figure 1. Spatial distribution of fast fires across CONUS. Top 100 fastest fires
 
 ```{r warning=F, message=F}
 
-# Bring in cities and lakes
-cities <- st_read(paste0(maindir,"/data/boundaries/political/USGS/USA_MajorCities.shp")) %>%
- st_transform(st_crs(lambert.prj)) %>%
- filter(NAME == "Denver")
-lakes <- st_read(paste0(maindir,"/data/water/great_lakes.gpkg"))
+# # Bring in cities and lakes
+# cities <- st_read(paste0(maindir,"/data/boundaries/political/USGS/USA_MajorCities.shp")) %>%
+#  st_transform(st_crs(lambert.prj)) %>%
+#  filter(NAME == "Denver")
+# # lakes <- st_read(paste0(maindir,"/data/water/great_lakes.gpkg"))
 
 # Spatial map of top 100
 centroid1 <- st_centroid(fired.fast)
@@ -326,65 +390,42 @@ centroid2 <- st_centroid(fired.t100)
 centroid3 <- st_centroid(ics.fired.t100)
 
 f1 <- ggplot() + 
-   geom_sf(data = states, lwd=0.7, color=alpha("gray20", 0.85), fill=alpha("white",0.75)) +
+   geom_sf(data = states, lwd=0.6, color="gray20", fill="white") +
    geom_sf(data = states %>% st_buffer(1e5), color=NA, fill=NA) +
-   geom_sf(data = centroid1, color=alpha("gray40", 1), size=0.3) +
+   geom_sf(data = centroid1, color="gray40", size=0.3) +
    geom_sf(data = centroid2, aes(color=mx_grw_ha, size=mx_grw_ha)) +
-   # geom_sf(data=cities, size=2.5, shape=18) +
-   # geom_sf(data=lakes, color=NA, fill="grey75") +
    scale_color_viridis_c(trans="log", option="inferno", direction=-1,
                          breaks=c(20000,40000,80000,160000),
                          labels=c("20k","40k","80k","160k")) +
-   labs(fill="", color="Maximum Single-Day Growth (ha/day)", tag=expression(bold("(A)"))) +
-   guides(color = guide_colourbar(direction = "horizontal", barwidth = 12, barheight = 0.60, 
-                                  ticks=F, title.position = "top"),
-          label.theme = element_text(angle = 0, size = 9),
+   labs(fill="", color="Maximum Single-Day Growth (ha/day)") +
+   guides(color = guide_colourbar(direction = "horizontal", barwidth = 12, barheight = 0.80, 
+                                  ticks.colour = NA, title.position = "top"),
+          label.theme = element_text(angle = 0, size = 10),
           size="none") +
    theme_void() +
-   theme(plot.margin = unit(c(0.0,0.0,0.0,0.0), "in"),
+   theme(plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm"),
          plot.title = element_blank(),
          legend.title = element_text(angle = 0, size=10),
-         legend.text = element_text(size=9),
-         legend.position=c(0.23, 0.08),
+         legend.text = element_text(size=10),
+         legend.position=c(0.18, 0.08),
          plot.tag = element_text(vjust = -1.2),
-         text = element_text(family = "Helvetica")) +
+         text = element_text(family = "Helvetica", size=10)) +
+   coord_sf(expand = FALSE) +
    ggspatial::annotation_scale(location = "br", width_hint = 0.1,
-                               pad_x = unit(0.2,"in"), pad_y = unit(0.2,"in"),
+                               pad_x = unit(0.15,"in"), pad_y = unit(0.05,"in"),
                                line_width = 0.5, text_pad = unit(0.15,"cm"),
                                height = unit(0.15,"cm")) +
    ggspatial::annotation_north_arrow(location = "br", which_north = "true",
-                                     pad_x = unit(0.3,"in"), pad_y= unit(0.4,"in"),
+                                     pad_x = unit(0.25,"in"), pad_y= unit(0.2,"in"),
                                      width = unit(0.8,"cm"), height = unit(0.8,"cm"),
                                      style = north_arrow_fancy_orienteering)
 f1
 
 # Save it out
-ggsave(f1, file = "../../figures/Figure1A_fastest_fires_conus.png",
-       dpi = 300, bg="white") # adjust dpi accordingly
-
-rm(f1,centroid1,centroid2,centroid3,cities,lakes)
+ggsave(f1, file = "../../figures/Figure1a_FastFires_CONUS.png", dpi=300)
 ```
 
 Figure 1B-D. Case studies - selection of fast fires from the top 100 with ZTRAX point locations and daily burned area.
-
-Load the ZTRAX point data and the list of fire boundaries (using MTBS):
-
-```{r}
-# ZTRAX point locations
-# ztrax <- st_read("../../data/spatial/mod/ztrax/extract/zasmt_fast_fires_extract.shp") %>%
-#  st_transform(st_crs(mtbs))
-# # Selected MTBS fires
-# mtbs_ <- mtbs %>%
-#  filter(Event_ID %in% c(
-#   # NW Oklahoma Complex, OK & KS (2017)
-#   "OK3671009983720170307","OK3677410017520170307",
-#   # Cold Springs, WA (2020)
-#   "WA4836011949320200907",
-#   # Martin Fire, NV (2018)
-#   "NV4152811742720180705",
-#   # Cedar Fire, CA (2003)
-#   "CA3293911676620031025"))
-```
 
 Load the HISDAC-US BUPR points:
 
@@ -426,6 +467,9 @@ mcd64 <- terra::rast('../../data/spatial/mod/mcd64a1/mcd64a1_annual_burndate_y20
 mcd64 <- terra::project(mcd64,crs(lambert.prj, proj=TRUE))
 mcd64 <- terra::crop(mcd64,fire,mask=T)
 
+```
+
+```{r}
 # Convert to data frame
 p1 <- mcd64 %>% as.data.frame(xy = TRUE) %>% mutate(
  value = as.integer(mcd64a1_annual_burndate_y2017)
@@ -439,39 +483,34 @@ p1 <- mcd64 %>% as.data.frame(xy = TRUE) %>% mutate(
  drop_na() %>%
  ggplot() +
  geom_raster(aes(x = x, y = y, fill = value)) +
- # scale_fill_brewer(palette="Reds", na.value="white", direction=-1) +
  scale_fill_fermenter(breaks = c(1:5,6), palette = "Reds") + 
  # Add the fire boundary
  geom_sf(data=fire, fill="transparent", color="gray30", lwd=0.45) +
- geom_sf(data=points, color=alpha("black",0.8), size=0.85, shape=18) +
- coord_sf() +
- # , tag=expression(bold("(B)"))
+ geom_sf(data=points, color=alpha("black",0.8), size=1.1, shape=18) +
+ coord_sf(expand = FALSE) +
  labs(fill="Days Since Ignition") +
  theme_void() +
  theme(legend.position="none",
        plot.title = element_text(hjust = 0.5),
-       plot.tag = element_text(hjust = -2.5),
-       text = element_text(family = "Helvetica")) +
+       plot.tag = element_text(hjust = -2.5, vjust = 2.0),
+       plot.margin = unit(c(1, 1, 1, 1), "cm"),  # Add margin around the plot
+       text = element_text(family = "Helvetica", size = 10)) +
  guides(fill = element_blank()) +
- # guides(fill = guide_colorbar(title.position="top", title.hjust = 0.5,
- #                              barwidth = 12, barheight = 0.5,
- #                              ticks=FALSE, draw.llim=FALSE)) +
  ggspatial::annotation_scale(location = "br", width_hint = 0.1,
-                             pad_x = unit(0.2,"in"), pad_y = unit(0.2,"in"),
+                             pad_x = unit(0.05,"in"), pad_y = unit(0.05,"in"),
                              line_width = 0.5, text_pad = unit(0.15,"cm"),
                              height = unit(0.15,"cm")) +
  ggspatial::annotation_north_arrow(location = "br", which_north = "true",
-                                   pad_x = unit(0.3,"in"), pad_y= unit(0.4,"in"),
+                                   pad_x = unit(0.1,"in"), pad_y= unit(0.4,"in"),
                                    width = unit(0.8,"cm"), height = unit(0.8,"cm"),
                                    style = north_arrow_fancy_orienteering)
 p1
 gc()
 
 # Save the image
-ggsave(p1, file = "../../figures/FigureX_NWOKCMPLXFire.png",
-       width=3.5, height=3.5, dpi = 300, bg="transparent") # adjust dpi accordingly
-
+ggsave(p1, file = "../../figures/Figure1b_NWOKCMPLX.png", dpi=300) # adjust dpi accordingly
 ```
+
 
 Cold Springs Fire, WA (2020)
 
@@ -503,7 +542,9 @@ fire_dir <- paste0(maindir,"/fast-fires/data/spatial/mod/mcd64a1/")
 mcd64 <- terra::rast('../../data/spatial/mod/mcd64a1/mcd64a1_annual_burndate_y2020.tif')
 mcd64 <- terra::project(mcd64,crs(lambert.prj, proj=TRUE))
 mcd64 <- terra::crop(mcd64,fire,mask=T)
+```
 
+```{r}
 # Convert to data frame
 p2 <- mcd64 %>% as.data.frame(xy = TRUE) %>% mutate(
  value = as.integer(mcd64a1_annual_burndate_y2020)
@@ -516,22 +557,17 @@ p2 <- mcd64 %>% as.data.frame(xy = TRUE) %>% mutate(
  drop_na() %>%
  ggplot() +
  geom_raster(aes(x = x, y = y, fill = value)) +
- # scale_fill_brewer(palette="Reds", na.value="white", direction=-1) +
  scale_fill_fermenter(breaks = c(1:5,6), palette = "Reds") +
  # Add the fire boundary
  geom_sf(data=fire, fill="transparent", color="gray30", lwd=0.45) +
- geom_sf(data=points, color=alpha("black",0.8), size=0.85, shape=18) +
+ geom_sf(data=points, color=alpha("black",0.8), size=1.1, shape=18) +
  coord_sf() +
- # , tag=expression(bold("C"))
  labs(fill="Days Since Ignition") +
  theme_void() +
  theme(legend.position="none",
        plot.title = element_text(hjust = 0.5),
        plot.tag = element_text(hjust = 1.2),
        text = element_text(family = "Helvetica")) +
- # guides(fill = guide_colorbar(title.position="top", title.hjust = 0.5,
- #                               barwidth = 12, barheight = 0.5,
- #                               ticks=FALSE, draw.llim=FALSE)) +
  ggspatial::annotation_scale(location = "br", width_hint = 0.1,
                              pad_x = unit(0.0,"in"), pad_y = unit(0.2,"in"),
                              line_width = 0.5, text_pad = unit(0.15,"cm"),
@@ -544,12 +580,10 @@ p2
 gc()
 
 # Save the image
-ggsave(p2, file = "../../figures/FigureX_ColdSpringsFire.png",
-       width=3.5, height=3.5, dpi = 300, bg="transparent") # adjust dpi accordingly
-
+ggsave(p2, file = "../../figures/Figure1c_COLDSPRINGSCMPLX.png", dpi=300) # adjust dpi accordingly
 ```
 
-Witch-Poomacha Fire, CA (2007) - highly destructive event
+Witch-Poomacha Fire, CA (2007)
 
 ```{r}
 
@@ -582,7 +616,9 @@ fire_dir <- paste0(maindir,"/fast-fires/data/spatial/mod/mcd64a1/")
 mcd64 <- terra::rast('../../data/spatial/mod/mcd64a1/mcd64a1_annual_burndate_y2007.tif')
 mcd64 <- terra::project(mcd64,crs(lambert.prj, proj=TRUE))
 mcd64 <- terra::crop(mcd64,fire,mask=T)
+```
 
+```{r}
 # Convert to data frame
 p3 <- mcd64 %>% as.data.frame(xy = TRUE) %>% mutate(
  value = as.integer(mcd64a1_annual_burndate_y2007)
@@ -600,19 +636,14 @@ p3 <- mcd64 %>% as.data.frame(xy = TRUE) %>% mutate(
  scale_fill_fermenter(breaks = c(1:5,6), palette = "Reds") + 
  # Add the fire boundary
  geom_sf(data=fire, fill="transparent", color="gray30", lwd=0.45) +
- geom_sf(data=points, color=alpha("black",0.45), size=0.65, shape=18) +
+ geom_sf(data=points, color=alpha("black",0.25), size=0.85, shape=18) +
  coord_sf() +
- # , tag=expression(bold("D"))
- labs(fill="Days Since Ignition") +
  theme_void() +
  theme(legend.position="none",
        plot.title = element_text(hjust = 0.5),
        plot.margin = unit(c(1,1,1,1),'lines'),
        plot.tag = element_text(hjust = 1.2),
        text = element_text(family = "Helvetica")) +
- # guides(fill = guide_colorbar(title.position="top", title.hjust = 0.5,
- #                               barwidth = 12, barheight = 0.5,
- #                               ticks=FALSE, draw.llim=FALSE)) +
  ggspatial::annotation_scale(location = "br", width_hint = 0.1,
                              pad_x = unit(0.1,"in"), pad_y = unit(0.15,"in"),
                              line_width = 0.5, text_pad = unit(0.15,"cm"),
@@ -625,15 +656,105 @@ p3
 gc()
 
 # Save the image
-ggsave(p3, file = "../../figures/FigureX_WitchPoomachaFire.png",
-       dpi = 300, bg="transparent") # adjust dpi accordingly
-
+ggsave(p3, file = "../../figures/Figure1d_WITCHPOOMACHA.png", dpi=300) # adjust dpi accordingly
 ```
 
-3-Panel combined:
+Gather the legend and color bar:
 
 ```{r}
-ggpubr::ggarrange(p1, p2, p3, nrow = 1, common.legend = T, widths = c(2, 2, 2))
+library(grid, quiet=T)
+library(cowplot, quiet=T)
+# Create a dummy plot to generate the legend
+legend_plot <- ggplot() +
+  geom_sf(data = fire, aes(linetype = "Fire perimeter (MTBS)"), color = "gray30", fill="transparent", lwd = 0.7) +
+  geom_sf(data = points, aes(shape = "Property records (HISDAC-US)"), size = 5.5) +
+  scale_linetype_manual(name = NULL, values = "solid") +  # Fire perimeter line type
+  scale_shape_manual(name = NULL, values = 18) +  # Point shape
+  guides(
+    linetype = guide_legend(order = 1, override.aes = list(size = 0.5)),  # Control line size in legend
+    shape = guide_legend(order = 2)
+  ) +
+  theme_void() +
+  theme(legend.position = "right",
+        legend.text = element_text(family = "Helvetica", size=11))
+
+# Extract the combined legend
+legend <- get_legend(legend_plot)
+ggsave(legend, file = "../../figures/Figure1_legend.png", bg = "transparent")
+legend
+```
+
+```{r}
+# Create a dummy plot to generate the colorbar
+colorbar_plot <- mcd64 %>% 
+  as.data.frame(xy = TRUE) %>% 
+  mutate(value = as.integer(mcd64a1_annual_burndate_y2007)) %>% 
+  dplyr::select(-mcd64a1_annual_burndate_y2007) %>%
+  mutate(value = if_else(value < start_doy, NA, value),
+         value = if_else(value > end_doy, NA, value),
+         value = value - start_doy,
+         value = if_else(value > 5, 6, value)) %>%
+  filter(value > 0) %>%
+  drop_na() %>%
+  ggplot() +
+  geom_raster(aes(x = x, y = y, fill = value)) +
+  scale_fill_fermenter(
+   breaks = c(1:5, 6), 
+   palette = "Reds", 
+   direction = -1,
+   guide = "colorbar",
+   na.value = NA) +
+  guides(fill = guide_colorbar(
+   title = "Days since ignition",
+   title.position = "top", 
+   title.hjust = 0.5,
+   barwidth = 12, 
+   barheight = 0.8,
+   direction = "horizontal",
+   label.position = "bottom",
+   ticks.colour = NA, 
+   draw.ulim = FALSE,
+   draw.llim = FALSE)) +
+  theme_void() +
+  theme(
+    legend.position = "right",  # Position of the colorbar
+    legend.title = element_text(size = 10, family = "Helvetica", hjust = 0.5),  # Control title size and font
+    legend.text = element_text(size = 9, family = "Helvetica")  # Adjust text appearance in the colorbar
+  )
+
+# Extract the colorbar using get_legend()
+colorbar_ <- get_legend(colorbar_plot)
+ggsave(colorbar_, file = "../../figures/Figure1_colorbar.png")
+colorbar_
+```
+
+Create an inset map showing the fire locations:
+
+```{r warning=F}
+# Gather the three fire perimeters from th4e case study:
+fireB <- fired.fast %>% filter(id %in% c(33409)) %>% st_centroid()
+fireC <- fired.fast %>% filter(id %in% c(46167)) %>% st_centroid()
+fireD <- mtbs %>% filter(Event_ID %in% c("WA4836011949320200907")) %>% st_centroid()
+fire_centroids <- rbind(
+  data.frame(st_coordinates(fireB), label = "B"),
+  data.frame(st_coordinates(fireC), label = "C"),
+  data.frame(st_coordinates(fireD), label = "D")
+)
+
+# Convert to sf object for plotting
+fire_centroids.sf <- st_as_sf(fire_centroids, coords = c("X", "Y"), crs = st_crs(fireA))
+
+# Create the inset map
+inset_map <- ggplot() +
+  geom_sf(data = states, lwd=0.2, color="gray10", fill="white") +
+  geom_label(data = fire_centroids, aes(X, Y, label = label), 
+             size = 2, fontface = "bold", color = "black", fill = "gray90", 
+             label.size = 0.25, label.padding = unit(0.2, "lines"),
+             family="Helvetica") +
+  theme_void()
+
+inset_map
+ggsave(inset_map, file = "../../figures/Figure1_InsetMap.png", height = 1.2, width = 1.5) 
 ```
 
 Additional fires:
