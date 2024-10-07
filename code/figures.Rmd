@@ -733,8 +733,8 @@ Create an inset map showing the fire locations:
 ```{r warning=F}
 # Gather the three fire perimeters from th4e case study:
 fireB <- fired.fast %>% filter(id %in% c(33409)) %>% st_centroid()
-fireC <- fired.fast %>% filter(id %in% c(46167)) %>% st_centroid()
-fireD <- mtbs %>% filter(Event_ID %in% c("WA4836011949320200907")) %>% st_centroid()
+fireC <- mtbs %>% filter(Event_ID %in% c("WA4836011949320200907")) %>% st_centroid()
+fireD <- fired.fast %>% filter(id %in% c(46167)) %>% st_centroid()
 fire_centroids <- rbind(
   data.frame(st_coordinates(fireB), label = "B"),
   data.frame(st_coordinates(fireC), label = "C"),
@@ -742,7 +742,7 @@ fire_centroids <- rbind(
 )
 
 # Convert to sf object for plotting
-fire_centroids.sf <- st_as_sf(fire_centroids, coords = c("X", "Y"), crs = st_crs(fireA))
+fire_centroids.sf <- st_as_sf(fire_centroids, coords = c("X", "Y"), crs = st_crs(fireB))
 
 # Create the inset map
 inset_map <- ggplot() +
