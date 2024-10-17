@@ -75,7 +75,7 @@ gc()
 
 # Tidy the attributes
 fired.daily <- fired.daily %>%
- select(FIRED_ID, INCIDENT_ID, did, id, ig_date, ig_month, ig_year,
+ select(FIRED_ID, INCIDENT_ID, did, id, date, ig_date, ig_month, ig_year,
         event_day, event_dur, dy_ar_km2, tot_ar_km2, mx_grw_km2,
         mx_grw_dte, mx_grw_dte_doy, mx_grw_dte_event_day, last_date) 
 
